@@ -195,7 +195,7 @@ class MinecraftPolicy(nn.Module):
         # MODIFIED (added this)
         self.mineclip_embed_linear = th.nn.Linear(mineclip_embed_dim, hidsize)
         # NOTE: Memory modification
-        self.memory_embed_linear = th.nn.Linear(len_memory*mineclip_embed_dim, hidsize)
+        self.memory_embed_layer = th.nn.LSTM(mineclip_embed_dim, hidsize, batch_first=True)
         self.goal_memory_linear = th.nn.Linear(2*hidsize, hidsize)
 
     def output_latent_size(self):
@@ -222,8 +222,9 @@ class MinecraftPolicy(nn.Module):
         # mineclip_embed = mineclip_embed.reshape(b, t, -1)
 
         # NOTE: Memory modification
-        memory_embeds = ob["memory_embeds"].reshape(b * t, -1).float()
-        memory_embeds = self.memory_embed_linear(memory_embeds)
+        memory_embeds = ob["memory_embeds"].float()
+        _, (memory_embeds, _) = self.memory_embed_layer(memory_embeds)
+        memory_embeds = memory_embeds.squeeze(0)
         memory_embeds = F.relu(memory_embeds)
         combined = self.goal_memory_linear(th.cat([mineclip_embed, memory_embeds], dim=-1))
         combined = combined.reshape(b, t, -1)

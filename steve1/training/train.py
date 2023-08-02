@@ -420,7 +420,7 @@ def main(args):
 
                         # Get the memory embeds
                         rst = obs_chunk["t"].reshape(-1, 2)
-                        memory_embeds = np.array([dataset.embeds_cache[idt[0].item()][idt[1]:idt[1]+512] for idt in rst])
+                        memory_embeds = np.array([dataset.embeds_cache[idt[0].item()][idt[1]:idt[1]+512:16] for idt in rst])
                         obs_chunk['memory_embeds'] = memory_embeds
 
                         # Convert to torch tensors
