@@ -1,3 +1,13 @@
+#!/bin/bash
+#SBATCH --account=def-mcrowley
+#SBATCH --mem=6G      # memory; default unit is megabytes
+#SBATCH --gpus-per-node=1
+#SBATCH --time=5:0:0           # time (DD-HH:MM)
+
+cd /home/h86chen/scratch/STEVE-1 && source .venv/bin/activate
+cd /home/h86chen/scratch/STEVE-1-Memory
+module load scipy-stack StdEnv/2020 gcc/9.3.0 cuda/11.4 opencv java/1.8.0_192 python/3.9 
+
 
 # This will download the dataset from OpenAI to a local directory and convert it to the format used by the code.
 

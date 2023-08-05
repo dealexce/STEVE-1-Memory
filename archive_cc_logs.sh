@@ -1,0 +1,1 @@
+mv ./slurm-*.out ./slurm-logs/

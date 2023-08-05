@@ -197,6 +197,10 @@ def run_validation(policy, val_dataloader, args, device, accelerator):
                 actions_chunk = tree_map(lambda x: get_chunk(x, t, args.trunc_t), actions)
                 firsts_chunk = firsts[:, t:t + args.trunc_t]
 
+                rst = obs_chunk["t"].reshape(-1, 2)
+                memory_embeds = np.array([val_dataloader.dataset.embeds_cache[idt[0].item()][idt[1]:idt[1]+512:16] for idt in rst])
+                obs_chunk['memory_embeds'] = memory_embeds
+
                 # Convert to torch tensors
                 obs_chunk = object_to_torch_and_device(obs_chunk, device)
                 actions_chunk = object_to_torch_and_device(actions_chunk, device)
@@ -488,32 +492,32 @@ def main(args):
                         save_snapshot_n_frames(args, next_snapshot_n_frames) # Save the current snapshot
                         next_snapshot_n_frames += args.snapshot_every_n_frames # Update the next snapshot
 
-                    # Run validation code every val_freq trn steps
-                    if (n_steps - 1) % val_freq == 0:
-                        if accelerator.is_main_process:
-                            print(f'Running validation at step {n_steps}...')
-                        with timer.time('validation'):
-                            val_loss = run_validation(policy, val_dataloader, args, device, accelerator)
-                        metrics_log.update({
-                            "val_loss": val_loss,
-                        })
+                    # # Run validation code every val_freq trn steps
+                    # if (n_steps - 1) % val_freq == 0:
+                    #     if accelerator.is_main_process:
+                    #         print(f'Running validation at step {n_steps}...')
+                    #     with timer.time('validation'):
+                    #         val_loss = run_validation(policy, val_dataloader, args, device, accelerator)
+                    #     metrics_log.update({
+                    #         "val_loss": val_loss,
+                    #     })
 
-                        if val_loss < best_val_loss:
-                            best_val_loss = val_loss
-                            if accelerator.is_main_process:
-                                print(f'New best validation loss: {best_val_loss}, saving best val model weights...')
-                                state_dict = policy.state_dict()
-                                state_dict = {k.replace("module.policy.", ""): v for k, v in state_dict.items()}
-                                accelerator.save(state_dict, best_weights)
-                                # Also save json with the best val loss and the current n_steps and epoch
-                                best_metadata = {
-                                    "best_val_loss": best_val_loss,
-                                    "n_steps": n_steps,
-                                    "epoch": n_steps / epoch_len,
-                                }
-                                metadata_path = args.out_weights.replace('.weights', '_best.json')
-                                with open(metadata_path, 'w') as f:
-                                    json.dump(best_metadata, f)
+                    #     if val_loss < best_val_loss:
+                    #         best_val_loss = val_loss
+                    #         if accelerator.is_main_process:
+                    #             print(f'New best validation loss: {best_val_loss}, saving best val model weights...')
+                    #             state_dict = policy.state_dict()
+                    #             state_dict = {k.replace("module.policy.", ""): v for k, v in state_dict.items()}
+                    #             accelerator.save(state_dict, best_weights)
+                    #             # Also save json with the best val loss and the current n_steps and epoch
+                    #             best_metadata = {
+                    #                 "best_val_loss": best_val_loss,
+                    #                 "n_steps": n_steps,
+                    #                 "epoch": n_steps / epoch_len,
+                    #             }
+                    #             metadata_path = args.out_weights.replace('.weights', '_best.json')
+                    #             with open(metadata_path, 'w') as f:
+                    #                 json.dump(best_metadata, f)
 
                     if metrics_log:
                         metrics_log.update(timer.dict())

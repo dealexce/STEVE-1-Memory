@@ -217,11 +217,11 @@ class MinecraftPolicy(nn.Module):
         # Normalize mineclip_embed (doesn't work because the norm is way too small then?)
         # mineclip_embed = F.normalize(mineclip_embed, dim=-1)
         mineclip_embed = self.mineclip_embed_linear(mineclip_embed)
-        mineclip_embed = F.relu(mineclip_embed)
         # NOTE: The output will go to the combining layer, so no need to reshape here
         # mineclip_embed = mineclip_embed.reshape(b, t, -1)
 
         # NOTE: Memory modification
+        mineclip_embed = F.relu(mineclip_embed)
         memory_embeds = ob["memory_embeds"].float()
         _, (memory_embeds, _) = self.memory_embed_layer(memory_embeds)
         memory_embeds = memory_embeds.squeeze(0)
