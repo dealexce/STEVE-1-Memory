@@ -2,7 +2,8 @@ import os
 import sys
 
 import cv2
-import torch
+import torch 
+import numpy as np
 from tqdm import tqdm
 import argparse
 
@@ -18,9 +19,9 @@ FPS = 30
 
 
 def run_agent(prompt_embed, gameplay_length, save_video_filepath,
-              in_model, in_weights, seed, cond_scale):
+              in_model, in_weights, seed, cond_scale, mineclip):
     assert cond_scale is not None
-    agent, mineclip, env = load_mineclip_agent_env(in_model, in_weights, seed, cond_scale)
+    agent, env = load_mineclip_agent_env(in_model, in_weights, seed, cond_scale)
 
     # Make sure seed is set if specified
     obs = env.reset()
@@ -29,17 +30,25 @@ def run_agent(prompt_embed, gameplay_length, save_video_filepath,
 
     # Setup
     gameplay_frames = []
+    clip_buffer = np.zeros((16, 3, 160, 256))
+    memory_embeds = torch.zeros(32,512).to(DEVICE)
     prog_evaluator = ProgrammaticEvaluator(obs)
 
     # Run agent in MineRL env
     for _ in tqdm(range(gameplay_length)):
         with torch.cuda.amp.autocast():
-            minerl_action = agent.get_action(obs, prompt_embed)
+            minerl_action = agent.get_action(obs, prompt_embed, memory_embeds.unsqueeze(0))
 
         obs, _, _, _ = env.step(minerl_action)
+
         frame = obs['pov']
         frame = cv2.resize(frame, (128, 128))
         gameplay_frames.append(frame)
+
+        mineclip_frame = np.moveaxis(cv2.resize(frame, (256, 160)), -1, 0)
+        clip_buffer = np.vstack((clip_buffer[1:], mineclip_frame.reshape(1, 3, 160, -1)))
+        embed = mineclip.encode_video(torch.from_numpy(clip_buffer).unsqueeze(0).to(DEVICE))
+        memory_embeds = torch.cat((memory_embeds[1:], embed))
 
         prog_evaluator.update(obs)
 
@@ -51,24 +60,24 @@ def run_agent(prompt_embed, gameplay_length, save_video_filepath,
     prog_evaluator.print_results()
 
 
-def generate_text_prompt_videos(prompt_embeds, in_model, in_weights, cond_scale, gameplay_length, save_dirpath):
+def generate_text_prompt_videos(prompt_embeds, in_model, in_weights, cond_scale, gameplay_length, save_dirpath, mineclip):
     for name, prompt_embed in prompt_embeds.items():
         print(f'\nGenerating video for text prompt with name: {name}')
         save_video_filepath = os.path.join(save_dirpath, f'\'{name}\' - Text Prompt.mp4')
         if not os.path.exists(save_video_filepath):
             run_agent(prompt_embed, gameplay_length, save_video_filepath,
-                      in_model, in_weights, None, cond_scale)
+                      in_model, in_weights, None, cond_scale, mineclip)
         else:
             print(f'Video already exists at {save_video_filepath}, skipping...')
 
 
-def generate_visual_prompt_videos(prompt_embeds, in_model, in_weights, cond_scale, gameplay_length, save_dirpath):
+def generate_visual_prompt_videos(prompt_embeds, in_model, in_weights, cond_scale, gameplay_length, save_dirpath, mineclip):
     for name, prompt_embed in prompt_embeds.items():
         print(f'\nGenerating video for visual prompt with name: {name}')
         save_video_filepath = os.path.join(save_dirpath, f'{name} - Visual Prompt.mp4')
         if not os.path.exists(save_video_filepath):
             run_agent(prompt_embed, gameplay_length, save_video_filepath,
-                      in_model, in_weights, None, cond_scale)
+                      in_model, in_weights, None, cond_scale, mineclip)
         else:
             print(f'Video already exists at {save_video_filepath}, skipping...')
 
@@ -76,7 +85,7 @@ def generate_visual_prompt_videos(prompt_embeds, in_model, in_weights, cond_scal
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--in_model', type=str, default='data/weights/vpt/2x.model')
-    parser.add_argument('--in_weights', type=str, default='data/weights/steve1/steve1.weights')
+    parser.add_argument('--in_weights', type=str, default='data/weights/steve1/memory-16m.weights')
     parser.add_argument('--prior_weights', type=str, default='data/weights/steve1/steve1_prior.pt')
     parser.add_argument('--text_cond_scale', type=float, default=6.0)
     parser.add_argument('--visual_cond_scale', type=float, default=7.0)
@@ -85,20 +94,20 @@ if __name__ == '__main__':
     parser.add_argument('--custom_text_prompt', type=str, default=None)
     args = parser.parse_args()
 
+    mineclip = load_mineclip_wconfig()
     if args.custom_text_prompt is not None:
         # Generate a video for the text prompt
-        mineclip = load_mineclip_wconfig()
         prior = load_vae_model(PRIOR_INFO)
         prompt_embed = get_prior_embed(args.custom_text_prompt, mineclip, prior, DEVICE)
         custom_prompt_embeds = {args.custom_text_prompt: prompt_embed}
         generate_text_prompt_videos(custom_prompt_embeds, args.in_model, args.in_weights, args.text_cond_scale,
-                                    args.gameplay_length, args.save_dirpath)
+                                    args.gameplay_length, args.save_dirpath, mineclip)
     else:
         # Generate videos for the text and visual prompts used in the paper
         text_prompt_embeds = load_text_prompt_embeds()
         visual_prompt_embeds = load_visual_prompt_embeds()
         generate_text_prompt_videos(text_prompt_embeds, args.in_model, args.in_weights, args.text_cond_scale,
-                                    args.gameplay_length, args.save_dirpath)
+                                    args.gameplay_length, args.save_dirpath, mineclip)
         generate_visual_prompt_videos(visual_prompt_embeds, args.in_model, args.in_weights, args.visual_cond_scale,
-                                      args.gameplay_length, args.save_dirpath)
+                                      args.gameplay_length, args.save_dirpath, mineclip)
         sys.exit(0)

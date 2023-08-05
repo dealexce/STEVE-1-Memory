@@ -38,6 +38,10 @@ class MineRLConditionalAgent(MineRLAgent):
         self.reset(cond_scale=None)
         self._dummy_first = th.from_numpy(np.array((False,))).to(device)
 
+        # NOTE: Memory modification
+        self.buffer = [th.zeros((1,3,160,256), device=device)] * 16
+        self.embeds = [th.zeros((32,512), device=device)] * 32
+
     def reset(self, cond_scale=None):
         """Reset agent to initial state (i.e., reset hidden state)
         If cond_scale is None, we use a batch size of 1. Otherwise,
@@ -73,14 +77,14 @@ class MineRLConditionalAgent(MineRLAgent):
         minerl_action = self._agent_action_to_env(agent_action)
         return minerl_action
 
-    def get_action(self, minerl_obs, goal_embed):
+    def get_action(self, minerl_obs, goal_embed, memory_embeds):
         """
         Get agent's action for given MineRL observation.
 
         Agent's hidden state is tracked internally. To reset it,
         call `reset()`.
         """
-        agent_input = self._env_obs_to_agent(minerl_obs, goal_embed)
+        agent_input = self._env_obs_to_agent(minerl_obs, goal_embed, memory_embeds)
         # The "first" argument could be used to reset tell episode
         # boundaries, but we are only using this for predicting (for now),
         # so we do not hassle with it yet.
@@ -91,7 +95,7 @@ class MineRLConditionalAgent(MineRLAgent):
         minerl_action = self._agent_action_to_env(agent_action)
         return minerl_action
 
-    def _env_obs_to_agent(self, minerl_obs, goal_embed, device=None):
+    def _env_obs_to_agent(self, minerl_obs, goal_embed, memory_embeds, device=None):
         """
         Turn observation from MineRL environment into model's observation
 
@@ -102,6 +106,7 @@ class MineRLConditionalAgent(MineRLAgent):
 
         agent_input = resize_image(minerl_obs["pov"], AGENT_RESOLUTION)[None]
         agent_input = {"img": th.from_numpy(agent_input).to(device)}
+        agent_input['memory_embeds'] = memory_embeds.to(device)
 
         # MODIFIED
         agent_input['mineclip_embed'] = th.from_numpy(goal_embed).to(device)

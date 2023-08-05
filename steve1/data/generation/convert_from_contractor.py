@@ -93,9 +93,9 @@ if __name__ == '__main__':
                                                                       '10.x'])
     parser.add_argument('--output_dir', type=str, default='data/dataset_contractor/')
     parser.add_argument('--cache_dir', type=str, default='data/contractor_cache')
-    parser.add_argument('--batch_size', type=int, default=8)
+    parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--worker_id', type=int, default=0)
-    parser.add_argument('--num_episodes', type=int, default=200)
+    parser.add_argument('--num_episodes', type=int, default=5)
     parser.add_argument('--min_timesteps', type=int, default=1000)
 
     args = parser.parse_args()

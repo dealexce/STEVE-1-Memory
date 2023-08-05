@@ -48,7 +48,7 @@ def make_agent(in_model, in_weights, cond_scale):
 
 
 def load_mineclip_agent_env(in_model, in_weights, seed, cond_scale):
-    mineclip = load_mineclip_wconfig()
+    # mineclip = load_mineclip_wconfig()
     agent = make_agent(in_model, in_weights, cond_scale=cond_scale)
     env = make_env(seed)
-    return agent, mineclip, env
+    return agent, env

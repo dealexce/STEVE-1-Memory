@@ -126,7 +126,6 @@ class MinecraftPolicy(nn.Module):
         timesteps=None,
         use_pre_lstm_ln=True,  # Not needed for transformer
         mineclip_embed_dim=512,  # MODIFIED (added this)
-        len_memory=512,  # NOTE: Memory modification
         **unused_kwargs,
     ):
         super().__init__()
@@ -347,7 +346,11 @@ class MinecraftAgentPolicy(nn.Module):
             first = th.cat([first, first], dim=0)
 
         # We need to add a fictitious time dimension everywhere
-        obs = tree_map(lambda x: x.unsqueeze(1), obs)
+        # obs = tree_map(lambda x: x.unsqueeze(1), obs)
+        # MEMORY: except memory_embeds
+        obs['img'] = obs['img'].unsqueeze(1)
+        obs['mineclip_embed'] = obs['mineclip_embed'].unsqueeze(1)
+        
         first = first.unsqueeze(1)
 
         (pd, vpred, _), state_out = self(obs=obs, first=first, state_in=state_in)
