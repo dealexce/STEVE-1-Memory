@@ -194,8 +194,8 @@ class MinecraftPolicy(nn.Module):
         # MODIFIED (added this)
         self.mineclip_embed_linear = th.nn.Linear(mineclip_embed_dim, hidsize)
         # NOTE: Memory modification
-        self.memory_embed_layer = th.nn.LSTM(mineclip_embed_dim, hidsize, batch_first=True)
-        self.goal_memory_linear = th.nn.Linear(2*hidsize, hidsize)
+        # self.memory_embed_layer = th.nn.LSTM(mineclip_embed_dim, hidsize, batch_first=True)
+        # self.goal_memory_linear = th.nn.Linear(2*hidsize, hidsize)
 
     def output_latent_size(self):
         return self.hidsize
@@ -213,20 +213,23 @@ class MinecraftPolicy(nn.Module):
 
         # MODIFIED (added this)
         mineclip_embed = ob["mineclip_embed"].reshape(b * t, -1)
-        # Normalize mineclip_embed (doesn't work because the norm is way too small then?)
-        # mineclip_embed = F.normalize(mineclip_embed, dim=-1)
-        mineclip_embed = self.mineclip_embed_linear(mineclip_embed)
-        # NOTE: The output will go to the combining layer, so no need to reshape here
-        # mineclip_embed = mineclip_embed.reshape(b, t, -1)
 
-        # NOTE: Memory modification
-        mineclip_embed = F.relu(mineclip_embed)
-        memory_embeds = ob["memory_embeds"].float()
-        _, (memory_embeds, _) = self.memory_embed_layer(memory_embeds)
-        memory_embeds = memory_embeds.squeeze(0)
-        memory_embeds = F.relu(memory_embeds)
-        combined = self.goal_memory_linear(th.cat([mineclip_embed, memory_embeds], dim=-1))
-        combined = combined.reshape(b, t, -1)
+        # NOTE: Original
+        mineclip_embed = self.mineclip_embed_linear(mineclip_embed)
+        mineclip_embed = mineclip_embed.reshape(b, t, -1)
+        combined = mineclip_embed
+
+        # # NOTE: Memory modification
+        # mineclip_embed = self.mineclip_embed_linear(mineclip_embed)
+        # mineclip_embed = F.relu(mineclip_embed)
+        # memory_embeds = ob["memory_embeds"].float()
+        # _, (memory_embeds, _) = self.memory_embed_layer(memory_embeds)
+        # memory_embeds = memory_embeds.squeeze(0)
+        # memory_embeds = F.relu(memory_embeds)
+        # combined = self.goal_memory_linear(th.cat([mineclip_embed, memory_embeds], dim=-1))
+        # combined = combined.reshape(b, t, -1)
+
+
         x = x + combined
 
         if self.pre_lstm_ln is not None:

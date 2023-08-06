@@ -6,7 +6,7 @@
 
 COMMAND="python steve1/run_agent/run_agent.py \
     --in_model data/weights/vpt/2x.model \
-    --in_weights data/weights/steve1/memory-16m.weights \
+    --in_weights data/weights/steve1/origin-long.weights \
     --prior_weights data/weights/steve1/steve1_prior.pt \
     --text_cond_scale 6.0 \
     --visual_cond_scale 7.0 \

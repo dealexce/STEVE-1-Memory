@@ -37,7 +37,10 @@ def run_agent(prompt_embed, gameplay_length, save_video_filepath,
     # Run agent in MineRL env
     for _ in tqdm(range(gameplay_length)):
         with torch.cuda.amp.autocast():
-            minerl_action = agent.get_action(obs, prompt_embed, memory_embeds.unsqueeze(0))
+            # NOTE: ORIGINAL
+            minerl_action = agent.get_action(obs, prompt_embed)
+            # # NOTE: MEMORY
+            # minerl_action = agent.get_action(obs, prompt_embed, memory_embeds.unsqueeze(0))
 
         obs, _, _, _ = env.step(minerl_action)
 
@@ -45,10 +48,11 @@ def run_agent(prompt_embed, gameplay_length, save_video_filepath,
         frame = cv2.resize(frame, (128, 128))
         gameplay_frames.append(frame)
 
-        mineclip_frame = np.moveaxis(cv2.resize(frame, (256, 160)), -1, 0)
-        clip_buffer = np.vstack((clip_buffer[1:], mineclip_frame.reshape(1, 3, 160, -1)))
-        embed = mineclip.encode_video(torch.from_numpy(clip_buffer).unsqueeze(0).to(DEVICE))
-        memory_embeds = torch.cat((memory_embeds[1:], embed))
+        # NOTE: MEMORY
+        # mineclip_frame = np.moveaxis(cv2.resize(frame, (256, 160)), -1, 0)
+        # clip_buffer = np.vstack((clip_buffer[1:], mineclip_frame.reshape(1, 3, 160, -1)))
+        # embed = mineclip.encode_video(torch.from_numpy(clip_buffer).unsqueeze(0).to(DEVICE))
+        # memory_embeds = torch.cat((memory_embeds[1:], embed))
 
         prog_evaluator.update(obs)
 
