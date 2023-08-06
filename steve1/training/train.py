@@ -218,6 +218,7 @@ def run_validation(policy, val_dataloader, args, device, accelerator):
                       f"(bsz={bsz}, val_every_nth={args.val_every_nth})")
 
     avg_loss = sum_loss / n_loss
+    policy.train()
     return avg_loss
 
 def main(args):
@@ -285,8 +286,7 @@ def main(args):
                                    args.min_btwn_goals, 
                                    args.max_btwn_goals, 
                                    args.p_uncond, 
-                                   args.data_limit,
-                                   every_nth=args.val_every_nth)
+                                   args.data_limit)
     
     if accelerator.is_main_process:
         print(f'Total frames in val dataset: {val_dataset.get_total_frames():,}')
@@ -492,32 +492,32 @@ def main(args):
                         save_snapshot_n_frames(args, next_snapshot_n_frames) # Save the current snapshot
                         next_snapshot_n_frames += args.snapshot_every_n_frames # Update the next snapshot
 
-                    # # Run validation code every val_freq trn steps
-                    # if (n_steps - 1) % val_freq == 0:
-                    #     if accelerator.is_main_process:
-                    #         print(f'Running validation at step {n_steps}...')
-                    #     with timer.time('validation'):
-                    #         val_loss = run_validation(policy, val_dataloader, args, device, accelerator)
-                    #     metrics_log.update({
-                    #         "val_loss": val_loss,
-                    #     })
+                    # Run validation code every val_freq trn steps
+                    if (n_steps - 1) % val_freq == 0:
+                        if accelerator.is_main_process:
+                            print(f'Running validation at step {n_steps}...')
+                        with timer.time('validation'):
+                            val_loss = run_validation(policy, val_dataloader, args, device, accelerator)
+                        metrics_log.update({
+                            "val_loss": val_loss,
+                        })
 
-                    #     if val_loss < best_val_loss:
-                    #         best_val_loss = val_loss
-                    #         if accelerator.is_main_process:
-                    #             print(f'New best validation loss: {best_val_loss}, saving best val model weights...')
-                    #             state_dict = policy.state_dict()
-                    #             state_dict = {k.replace("module.policy.", ""): v for k, v in state_dict.items()}
-                    #             accelerator.save(state_dict, best_weights)
-                    #             # Also save json with the best val loss and the current n_steps and epoch
-                    #             best_metadata = {
-                    #                 "best_val_loss": best_val_loss,
-                    #                 "n_steps": n_steps,
-                    #                 "epoch": n_steps / epoch_len,
-                    #             }
-                    #             metadata_path = args.out_weights.replace('.weights', '_best.json')
-                    #             with open(metadata_path, 'w') as f:
-                    #                 json.dump(best_metadata, f)
+                        if val_loss < best_val_loss:
+                            best_val_loss = val_loss
+                            if accelerator.is_main_process:
+                                print(f'New best validation loss: {best_val_loss}, saving best val model weights...')
+                                state_dict = policy.state_dict()
+                                state_dict = {k.replace("module.policy.", ""): v for k, v in state_dict.items()}
+                                accelerator.save(state_dict, best_weights)
+                                # Also save json with the best val loss and the current n_steps and epoch
+                                best_metadata = {
+                                    "best_val_loss": best_val_loss,
+                                    "n_steps": n_steps,
+                                    "epoch": n_steps / epoch_len,
+                                }
+                                metadata_path = args.out_weights.replace('.weights', '_best.json')
+                                with open(metadata_path, 'w') as f:
+                                    json.dump(best_metadata, f)
 
                     if metrics_log:
                         metrics_log.update(timer.dict())
@@ -563,35 +563,35 @@ if __name__ == '__main__':
     parser.add_argument('--sampling', type=str, default='neurips')
     parser.add_argument('--sampling_dir', type=str, default='data/samplings/')
     parser.add_argument('--data_limit', type=int, default=None)
-    parser.add_argument('--val_every_nth', type=int, default=10)
+    parser.add_argument('--val_every_nth', type=int, default=1)
     parser.add_argument('--num_workers', type=int, default=4)
 
     parser.add_argument('--in_model', type=str, default='data/weights/vpt/2x.model')
     parser.add_argument('--in_weights', type=str, default=None)
 
     parser.add_argument('--out_weights', type=str,
-                        default='data/weights/steve1/trained_with_script.weights')
+                        default='data/weights/steve1/test_training.weights')
 
     parser.add_argument('--T', type=int, default=300)
     parser.add_argument('--p_uncond', type=float, default=0.1)
-    parser.add_argument('--min_btwn_goals', type=int, default=30)
-    parser.add_argument('--max_btwn_goals', type=int, default=100)
+    parser.add_argument('--min_btwn_goals', type=int, default=15)
+    parser.add_argument('--max_btwn_goals', type=int, default=200)
 
     parser.add_argument('--batch_size', type=int, default=4)
     parser.add_argument('--gradient_accumulation_steps', type=int, default=1)
     parser.add_argument('--trunc_t', type=int, default=10)
-    parser.add_argument('--learning_rate', type=float, default=1e-6)
-    parser.add_argument('--n_frames', type=int, default=100_000_000)
-    parser.add_argument('--warmup_frames', type=int, default=10_000_000)
+    parser.add_argument('--learning_rate', type=float, default=4e-5)
+    parser.add_argument('--n_frames', type=int, default=10_000_000)
+    parser.add_argument('--warmup_frames', type=int, default=1_000_000)
     parser.add_argument('--weight_decay', type=float, default=0.039428)
     parser.add_argument('--max_grad_norm', type=float, default=5.0)
 
     parser.add_argument('--log_freq', type=int, default=100)
     parser.add_argument('--save_freq', type=int, default=1000)
     parser.add_argument('--snapshot_every_n_frames', type=int, default=10_000_000)
-    parser.add_argument('--val_freq', type=int, default=3500)
-    parser.add_argument('--val_freq_begin', type=int, default=3500)
-    parser.add_argument('--val_freq_switch_steps', type=int, default=3500)
+    parser.add_argument('--val_freq', type=int, default=1000)
+    parser.add_argument('--val_freq_begin', type=int, default=100)
+    parser.add_argument('--val_freq_switch_steps', type=int, default=500)
     parser.add_argument('--save_each_val', type=bool, default=False)
 
     parser.add_argument('--checkpoint_dir', type=str,
