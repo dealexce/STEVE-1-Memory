@@ -47,7 +47,8 @@ def run_agent(prompt_embed, gameplay_length, save_video_filepath,
 
         mineclip_frame = np.moveaxis(cv2.resize(frame, (256, 160)), -1, 0)
         clip_buffer = np.vstack((clip_buffer[1:], mineclip_frame.reshape(1, 3, 160, -1)))
-        embed = mineclip.encode_video(torch.from_numpy(clip_buffer).unsqueeze(0).to(DEVICE))
+        with torch.no_grad():
+            embed = mineclip.encode_video(torch.from_numpy(clip_buffer).unsqueeze(0).to(DEVICE))
         memory_embeds = torch.cat((memory_embeds[1:], embed))
 
         prog_evaluator.update(obs)
@@ -95,6 +96,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     mineclip = load_mineclip_wconfig()
+    mineclip.eval()
     if args.custom_text_prompt is not None:
         # Generate a video for the text prompt
         prior = load_vae_model(PRIOR_INFO)
