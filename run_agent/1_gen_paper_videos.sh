@@ -4,7 +4,7 @@
 # exit with a non-zero exit code, which will cause the bash script to restart the python script.
 # When it finishes all videos, it should exit with a zero exit code, which will cause the bash script to exit.
 
-COMMAND="python steve1/run_agent/run_agent.py \
+COMMAND="xvfb-run python steve1/run_agent/run_agent.py \
     --in_model data/weights/vpt/2x.model \
     --in_weights data/weights/steve1/origin-long.weights \
     --prior_weights data/weights/steve1/steve1_prior.pt \
