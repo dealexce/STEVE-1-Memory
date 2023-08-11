@@ -1,3 +1,14 @@
+#!/bin/bash
+#SBATCH --account=def-mcrowley
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=8G      # memory; default unit is megabytes
+#SBATCH --gpus=1
+#SBATCH --time=4:0:0           # time (DD-HH:MM)
+
+source /home/h86chen/scratch/STEVE-1/.venv/bin/activate
+cd /home/h86chen/scratch/STEVE-1-Memory
+module load scipy-stack StdEnv/2020 gcc/9.3.0 cuda/11.4 opencv java/1.8.0_192 python/3.9 
+
 # For some reason, MineRL kills the program unpredictably when we instantiate a couple of environments.
 # A simple solution is to run the run_agent in an infinite loop and have the python script only generate videos
 # that are not already present in the output directory. Then, whenever this error happens, the python script will
@@ -6,7 +17,7 @@
 
 COMMAND="xvfb-run python steve1/run_agent/run_agent.py \
     --in_model data/weights/vpt/2x.model \
-    --in_weights data/weights/steve1/memory-13m.weights \
+    --in_weights data/weights/steve1/memory-16m.weights \
     --prior_weights data/weights/steve1/steve1_prior.pt \
     --text_cond_scale 6.0 \
     --visual_cond_scale 7.0 \

@@ -1,9 +1,10 @@
 #!/bin/bash
 #SBATCH --account=def-mcrowley
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=8G      # memory; default unit is megabytes
+#SBATCH --mem=32G      # memory; default unit is megabytes
 #SBATCH --gpus=1
 #SBATCH --time=24:0:0           # time (DD-HH:MM)
+#SBATCH --output=useful-logs/slurm-%j-train-ori430e13Mf.out
 
 source /home/h86chen/scratch/STEVE-1/.venv/bin/activate
 cd /home/h86chen/scratch/STEVE-1-Memory
@@ -14,7 +15,7 @@ module load scipy-stack StdEnv/2020 gcc/9.3.0 cuda/11.4 opencv java/1.8.0_192 py
 xvfb-run accelerate launch --num_processes 1 --mixed_precision bf16 steve1/training/train.py \
 --in_model data/weights/vpt/2x.model \
 --in_weights data/weights/vpt/rl-from-foundation-2x.weights \
---out_weights data/weights/steve1/mem-13m-v-g400/mem-13m-v-g400.weights \
+--out_weights data/weights/steve1mem/ori430e13Mf.weights \
 --trunc_t 16 \
 --T 640 \
 --batch_size 4 \
@@ -27,13 +28,12 @@ xvfb-run accelerate launch --num_processes 1 --mixed_precision bf16 steve1/train
 --p_uncond 0.1 \
 --min_btwn_goals 15 \
 --max_btwn_goals 400 \
---checkpoint_dir data/checkpoints/mem-13m-v-g400_checkpoint \
+--checkpoint_dir data/checkpoints/ori430e13Mf \
 --val_freq 1000 \
 --val_freq_begin 100 \
 --val_freq_switch_steps 500 \
-# --val_every_nth 10 \
 --save_each_val False \
 --sampling neurips \
 --sampling_dir data/samplings/ \
 --snapshot_every_n_frames 1_000_000 \
---val_every_nth 1
+--val_every_nth 8

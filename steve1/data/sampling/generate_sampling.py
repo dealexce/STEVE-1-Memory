@@ -122,9 +122,9 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--type', type=str, default='seed0')
-    parser.add_argument('--name', type=str, default='seed0')
-    parser.add_argument('--output_dir', type=str, default='/ssd005/projects/mc_trajs/samplings')
+    parser.add_argument('--type', type=str, default='neurips')
+    parser.add_argument('--name', type=str, default='neurips')
+    parser.add_argument('--output_dir', type=str, default='data/samplings')
     parser.add_argument('--val_frames', type=int, default=1_300_000)
     parser.add_argument('--val_from', type=str, default=None)
     parser.add_argument('--train_frames', type=int, default=11_000_000)

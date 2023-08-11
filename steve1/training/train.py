@@ -286,7 +286,8 @@ def main(args):
                                    args.min_btwn_goals, 
                                    args.max_btwn_goals, 
                                    args.p_uncond, 
-                                   args.data_limit)
+                                   args.data_limit,
+                                   args.val_every_nth)
     
     if accelerator.is_main_process:
         print(f'Total frames in val dataset: {val_dataset.get_total_frames():,}')
